@@ -87,13 +87,17 @@ These are part of the standard ROS2 Humble desktop install.
 | `controller_manager` | *_moveit | ros2_control controller manager |
 | `ros2launch` | dobot_rviz | Launch system |
 | `xacro` | dobot_rviz, dobot_gazebo, *_moveit | URDF macro processor |
+| `launch` | dobot_moveit, dobot_gazebo, dobot_rviz, *_moveit | Core ROS2 launch framework (`from launch import LaunchDescription`) |
+| `launch_ros` | dobot_moveit, dobot_gazebo, dobot_rviz, *_moveit | ROS2-specific launch actions (`Node`, `ParameterValue`) |
+| `ament_index_python` | dobot_moveit, dobot_gazebo, dobot_rviz, *_moveit | Package share directory discovery in launch files |
 
 **Install:**
 ```bash
 sudo apt install ros-humble-desktop
 # ros-humble-desktop includes: rclcpp, rclpy, std_msgs, sensor_msgs,
 # control_msgs, trajectory_msgs, tf2_ros, robot_state_publisher,
-# joint_state_publisher, joint_state_publisher_gui, xacro, rviz2
+# joint_state_publisher, joint_state_publisher_gui, xacro, rviz2,
+# launch, launch_ros, ament_index_python
 ```
 
 ---
@@ -104,6 +108,11 @@ sudo apt install ros-humble-desktop
 |---------|---------|------|
 | `rosidl_default_generators` | dobot_msgs_v4 | Generates C++/Python from .srv/.msg files |
 | `rosidl_default_runtime` | dobot_msgs_v4 | Runtime IDL support |
+
+> **Note:** `dobot_bringup_v4/package.xml` also declares `<build_depend>message_generation</build_depend>`.
+> This is a **ROS1 artifact** — in ROS2, message generation is handled by `rosidl_default_generators`
+> (correctly used in `dobot_msgs_v4`). The `message_generation` dependency is harmless but vestigial
+> and could be removed.
 
 **Install:** Included with `ros-humble-desktop`.
 
@@ -221,7 +230,12 @@ No installation needed — already present in the repository.
 
 ### 9. Python Runtime Dependencies
 
-Used implicitly by Python nodes. Not declared in `setup.py` because they are resolved through ROS2 workspace packages or the Ubuntu system.
+Used implicitly by Python nodes. These are resolved through ROS2 workspace packages or the Ubuntu
+system Python installation.
+
+> **Warning:** These dependencies are currently **not declared** in the `package.xml` files for
+> `dobot_moveit`, `dobot_demo`, and `servo_action`. They should be added as `<exec_depend>` entries.
+> See [Missing `package.xml` Declarations](#missing-packagexml-declarations) below for details.
 
 | Package | Used by | Install |
 |---------|---------|---------|
@@ -243,6 +257,75 @@ Used implicitly by Python nodes. Not declared in `setup.py` because they are res
 | `dobot_rviz` | ament_cmake | rviz2, xacro, robot_state_publisher, joint_state_publisher, ros2launch | ament_lint_auto, ament_lint_common |
 | `cra_description` | ament_cmake | — | — |
 | `cr*_moveit`, `me6_moveit`, `nova*_moveit` | ament_cmake | moveit_ros_move_group, moveit_kinematics, moveit_planners, moveit_simple_controller_manager, moveit_configs_utils, moveit_ros_visualization, moveit_ros_warehouse, moveit_setup_assistant, warehouse_ros_mongo, robot_state_publisher, joint_state_publisher, joint_state_publisher_gui, tf2_ros, xacro, controller_manager, rviz2, rviz_common, rviz_default_plugins, dobot_rviz | — |
+
+---
+
+## Missing `package.xml` Declarations
+
+The following dependencies are used in source code and launch files but are **not declared** in
+their respective `package.xml` files. This means `rosdep install` will not automatically resolve
+them. They are documented here for completeness; the fixes below should be applied to the
+corresponding `package.xml` files.
+
+### `dobot_bringup_v4` (package name: `cr_robot_ros2`)
+
+`sensor_msgs` is used in `CMakeLists.txt` (`find_package(sensor_msgs REQUIRED)`) and in source
+files (`main.cpp`, `cr_robot_ros2.cpp`, `cr_robot_ros2.h`) but is **not declared** in
+`package.xml`.
+
+**Missing entry:**
+```xml
+<depend>sensor_msgs</depend>
+```
+
+Additionally, `message_generation` is declared as a `<build_depend>` but is a ROS1 package with
+no effect in ROS2. It can safely be removed.
+
+### `dobot_moveit`
+
+All runtime dependencies are missing from `package.xml`. The package imports `rclpy`,
+`control_msgs`, `trajectory_msgs`, `sensor_msgs`, `dobot_msgs_v4`, and `numpy` at runtime.
+
+**Missing entries:**
+```xml
+<exec_depend>rclpy</exec_depend>
+<exec_depend>control_msgs</exec_depend>
+<exec_depend>trajectory_msgs</exec_depend>
+<exec_depend>sensor_msgs</exec_depend>
+<exec_depend>dobot_msgs_v4</exec_depend>
+```
+
+### `dobot_demo`
+
+All runtime dependencies are missing from `package.xml`. The package imports `rclpy` and
+`dobot_msgs_v4` at runtime.
+
+**Missing entries:**
+```xml
+<exec_depend>rclpy</exec_depend>
+<exec_depend>dobot_msgs_v4</exec_depend>
+```
+
+### `servo_action`
+
+All runtime dependencies are missing from `package.xml`. The package imports `rclpy`,
+`control_msgs`, `trajectory_msgs`, and `sensor_msgs` at runtime.
+
+**Missing entries:**
+```xml
+<exec_depend>rclpy</exec_depend>
+<exec_depend>control_msgs</exec_depend>
+<exec_depend>trajectory_msgs</exec_depend>
+<exec_depend>sensor_msgs</exec_depend>
+```
+
+### Impact
+
+Without these declarations:
+- `rosdep install --from-paths src` will not install missing dependencies for these packages
+- `colcon build` may still succeed if the dependencies happen to be installed for other reasons
+  (e.g., via `ros-humble-desktop`), masking the issue
+- Deploying to a minimal ROS2 installation (e.g., `ros-humble-ros-base`) will fail
 
 ---
 
