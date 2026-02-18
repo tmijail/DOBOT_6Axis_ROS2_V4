@@ -46,9 +46,9 @@ void TcpClient::disConnect()
 {
     if (is_connected_)
     {
+        ::close(fd_);
         fd_ = -1;
         is_connected_ = false;
-        ::close(fd_);
     }
 }
 

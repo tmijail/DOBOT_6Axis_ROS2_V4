@@ -18,7 +18,7 @@ class FollowJointTrajectoryServer(Node):
 
     def __init__(self):
         super().__init__('dobot_group_controller')
-        name = os.getenv("DOBOT_TYPE")
+        name = os.getenv("DOBOT_TYPE", "cr5")
         # 创建FollowJointTrajectory动作服务器
         self._action_server = ActionServer(self,FollowJointTrajectory,f'/{name}_group_controller/follow_joint_trajectory',self.execute_callback)
         self.get_logger().info("FollowJointTrajectory Action Server is ready...")
@@ -44,7 +44,7 @@ class FollowJointTrajectoryServer(Node):
         for i, point in enumerate(trajectory.points):
             joint= []
             for ii in point.positions:
-                joint.append(180 * ii / 3.14159)
+                joint.append(180 * ii / 3.14159265358979323846)
             Positions.append(joint)
             self.get_logger().info(
                 "Point {}: Positions: {}, Velocities: {}, Accelerations: {}, TimeFromStart: {}".format(
@@ -52,8 +52,16 @@ class FollowJointTrajectoryServer(Node):
                 )
             )
         for ii in Positions:
-            self.ServoJ_C(ii[0],ii[1],ii[2],ii[3],ii[4],ii[5])
+            future = self.ServoJ_C(ii[0],ii[1],ii[2],ii[3],ii[4],ii[5])
+            rclpy.spin_until_future_complete(self, future, timeout_sec=1.0)
+            if future.result() is not None:
+                if future.result().res != 0:
+                    self.get_logger().warn(
+                        "ServoJ returned error: {}".format(future.result().res))
+            else:
+                self.get_logger().warn("ServoJ call failed or timed out")
             time.sleep(0.18)
+
     def ServoJ_C(self, j1, j2, j3, j4, j5, j6):  # 运动指令
         P1 = ServoJ.Request()
         P1.a = float(j1)
@@ -63,9 +71,7 @@ class FollowJointTrajectoryServer(Node):
         P1.e = float(j5)
         P1.f = float(j6)
         P1.param_value = ["t=0.2"]
-        response = self.ServoJ_l.call_async(P1)
-        # self.spin_until_future_complete(response)  # 等待响应
-        # self.get_logger().info(f"{response.result()}")
+        return self.ServoJ_l.call_async(P1)
 
 def main(args=None):
     rclpy.init(args=args)

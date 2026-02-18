@@ -26,7 +26,6 @@ find_package(dobot_msgs_v4 REQUIRED)
 
 include_directories(
         include
-        ../../../install/dobot_msgs_v4/include
 )
 
 

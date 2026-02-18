@@ -2,6 +2,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <unistd.h>
 CRCommanderRos2::CRCommanderRos2(const std::string &ip)
     : current_joint_{}, tool_vector_{}, is_running_(false)
 {
@@ -62,7 +63,7 @@ void CRCommanderRos2::recvTask()
             catch (const TcpClientException &err)
             {
                 real_time_tcp_->disConnect();
-                std::cout << "tcp recv error :" << std::endl;
+                std::cout << "tcp recv error: " << err.what() << std::endl;
             }
         }
         else
@@ -73,7 +74,7 @@ void CRCommanderRos2::recvTask()
             }
             catch (const TcpClientException &err)
             {
-                std::cout << "tcp recv Error : %s" << std::endl;
+                std::cout << "tcp recv Error: " << err.what() << std::endl;
                 sleep(3);
             }
         }
@@ -87,7 +88,7 @@ void CRCommanderRos2::recvTask()
             catch (const TcpClientException &err)
             {
 
-                std::cout << "tcp recv ERROR : %s" << std::endl;
+                std::cout << "tcp recv ERROR: " << err.what() << std::endl;
                 sleep(3);
             }
         }
@@ -103,7 +104,7 @@ void CRCommanderRos2::init()
     }
     catch (const TcpClientException &err)
     {
-        std::cout << "Commander : %s" << std::endl;
+        std::cout << "Commander: " << err.what() << std::endl;
     }
 }
 int stringToInt(const std::string& str) {
@@ -130,7 +131,7 @@ void CRCommanderRos2::doTcpCmd(std::shared_ptr<TcpClient> &tcp, const char *cmd,
             bool err = tcp->tcpRecv(recv_ptr, 1024, has_read, 0);
             if (!err)
             {
-                sleep(0.01);
+                usleep(10000);
                 continue;
             }
             if (*(recv_ptr + strlen(recv_ptr) - 1) == ';')
@@ -138,7 +139,8 @@ void CRCommanderRos2::doTcpCmd(std::shared_ptr<TcpClient> &tcp, const char *cmd,
 
             recv_ptr = recv_ptr + strlen(recv_ptr);
         }
-        for (int i = 0; i < 2000;i++)  //赋值
+        int buf_len = static_cast<int>(strlen(buf));
+        for (int i = 0; i < buf_len; i++)  //赋值
         {
             if (recv_ptr[i] == '{')
             {
@@ -148,7 +150,7 @@ void CRCommanderRos2::doTcpCmd(std::shared_ptr<TcpClient> &tcp, const char *cmd,
                 err_id = num;
                 std::cout << "ErrorID: " << result<< std::endl;
             }
-            
+
         }
 
         std::cout << "tcp recv feedback : " << recv_ptr << std::endl; // FIXME parse the buf may be better
@@ -180,7 +182,7 @@ void CRCommanderRos2::doTcpCmd_f(std::shared_ptr<TcpClient> &tcp, const char *cm
             bool err = tcp->tcpRecv(recv_ptr, 1024, has_read, 0);
             if (!err)
             {
-                sleep(0.01);
+                usleep(10000);
                 continue;
             }
             if (*(recv_ptr + strlen(recv_ptr) - 1) == ';')
@@ -189,7 +191,8 @@ void CRCommanderRos2::doTcpCmd_f(std::shared_ptr<TcpClient> &tcp, const char *cm
             recv_ptr = recv_ptr + strlen(recv_ptr);
         }
         int pose1 = 0;
-        for (int i = 0; i < 2000;i++)  //赋值
+        int buf_len = static_cast<int>(strlen(buf));
+        for (int i = 0; i < buf_len; i++)  //赋值
         {
             if (recv_ptr[i] == '{')
             {
@@ -207,7 +210,7 @@ void CRCommanderRos2::doTcpCmd_f(std::shared_ptr<TcpClient> &tcp, const char *cm
                 mode_id = result;
                 break;
             }
-            
+
         }
         std::cout << "tcp recv feedback : " << recv_ptr << std::endl; // FIXME parse the buf may be better
     }
@@ -227,7 +230,7 @@ bool CRCommanderRos2::callRosService(const std::string cmd, int32_t &err_id)
     }
     catch (const TcpClientException &err)
     {
-        std::cout << "%s" << std::endl;
+        std::cout << "callRosService error: " << err.what() << std::endl;
         err_id = -1;
         return false;
     }
@@ -242,7 +245,7 @@ bool CRCommanderRos2::callRosService_f(const std::string cmd, int32_t &err_id,st
     }
     catch (const TcpClientException &err)
     {
-        std::cout << "%s" << std::endl;
+        std::cout << "callRosService_f error: " << err.what() << std::endl;
         err_id = -1;
         return false;
     }
@@ -256,7 +259,7 @@ bool CRCommanderRos2::callRosService(const std::string cmd, int32_t &err_id, std
     }
     catch (const TcpClientException &err)
     {
-        std::cout << "%s" << std::endl;
+        std::cout << "callRosService error: " << err.what() << std::endl;
         err_id = -1;
         return false;
     }
@@ -280,4 +283,10 @@ uint16_t CRCommanderRos2::getRobotMode() const
 std::shared_ptr<RealTimeData> CRCommanderRos2::getRealData() const
 {
     return real_time_data_;
+}
+
+RealTimeData CRCommanderRos2::getRealDataCopy()
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    return *real_time_data_;
 }

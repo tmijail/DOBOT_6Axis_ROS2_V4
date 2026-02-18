@@ -211,11 +211,11 @@ namespace parseTool
         std::stringstream ss;
         ss << "PositiveKin(";
         ss << request->j1 << "," << request->j2 << "," << request->j3 << "," << request->j4 << "," << request->j5 << ","
-           << request->j6 << ",";
+           << request->j6;
         if (request->user != "")
             ss << ",user=" << request->user;
         if (request->tool != "")
-            ss << ", tool=" << request->tool;
+            ss << ",tool=" << request->tool;
         ss << ")";
         return ss.str();
     }
@@ -411,7 +411,7 @@ namespace parseTool
     std::string parserGetAORequest2String(const std::shared_ptr<dobot_msgs_v4::srv::GetAO::Request> request)
     {
         std::stringstream ss;
-        ss << " GetAO(" << request->index << ")";
+        ss << "GetAO(" << request->index << ")";
         return ss.str();
     }
     std::string parserGetDOGroupRequest2String(const std::shared_ptr<dobot_msgs_v4::srv::GetDOGroup::Request> request)

@@ -17,6 +17,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include <memory>
+#include <atomic>
 #include <dobot_bringup/parseTool.h>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <rclcpp_action/create_server.hpp>
@@ -147,6 +148,7 @@ class CRRobotRos2 : public rclcpp::Node
 {
 public:
     CRRobotRos2();
+    ~CRRobotRos2();
     void init();
     static void execute_action(const std::shared_ptr<dobot_msgs_v4::srv::EnableRobot::Request> request,
                                std::shared_ptr<dobot_msgs_v4::srv::EnableRobot::Response> response);
@@ -307,6 +309,7 @@ private:
     std::shared_ptr<rclcpp::Service<dobot_msgs_v4::srv::RunScript>> kServiceRunScript;
     std::shared_ptr<rclcpp::Service<dobot_msgs_v4::srv::Stop>> kServiceStop;
     std::shared_ptr<rclcpp::Service<dobot_msgs_v4::srv::Pause>> kServicePause;
+    std::shared_ptr<rclcpp::Service<dobot_msgs_v4::srv::Continue>> kServiceContinue;
     std::shared_ptr<rclcpp::Service<dobot_msgs_v4::srv::EnableSafeSkin>> kServiceEnableSafeSkin;
     std::shared_ptr<rclcpp::Service<dobot_msgs_v4::srv::SetSafeSkin>> kServiceSetSafeSkin;
     std::shared_ptr<rclcpp::Service<dobot_msgs_v4::srv::GetStartPose>> kServiceGetStartPose;
@@ -412,6 +415,7 @@ private:
     std::string kRobotName;
     std::shared_ptr<CRCommanderRos2> commander_;
     std::thread threadPubFeedBackInfo;
+    std::atomic<bool> shutdown_requested_{false};
 };
 
 #endif // CRROBOTROS2_H

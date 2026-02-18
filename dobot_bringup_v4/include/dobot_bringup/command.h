@@ -122,7 +122,7 @@ typedef struct RealTimeData_t
 class CRCommanderRos2
 {
 protected:
-    static constexpr double PI = 3.1415926;
+    static constexpr double PI = 3.14159265358979323846;
 
 private:
     std::mutex mutex_;
@@ -149,6 +149,7 @@ public:
     bool isConnected() const;
     uint16_t getRobotMode() const;
     std::shared_ptr<RealTimeData> getRealData() const;
+    RealTimeData getRealDataCopy();
 
 private:
     static void doTcpCmd(std::shared_ptr<TcpClient> &tcp, const char *cmd, int32_t &err_id,

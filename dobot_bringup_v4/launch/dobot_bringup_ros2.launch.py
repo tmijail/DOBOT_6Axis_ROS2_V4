@@ -24,9 +24,9 @@ trajectory_duration = json_data["node_info"][current_robot -
                                              1]["trajectory_duration"]
 robot_node_name = json_data["node_info"][current_robot -
                                          1]["robot_node_name"]
-ip_address = os.getenv("IP_address")
-             
-robot_type = os.getenv("DOBOT_TYPE")
+ip_address = os.getenv("IP_address", "192.168.5.1")
+
+robot_type = os.getenv("DOBOT_TYPE", "cr5")
 
 
 dobot_ros2_params = [
